@@ -10,8 +10,10 @@ def getVCTPlayers(minRounds = 200, agent = "all", mapid = "all", timespan = 60):
     soup = BeautifulSoup(response.content, 'html.parser')
     print(url)
 
-    players = []
+    playerList = []
+    players = soup.find('table', class_ = "wf-table mod-stats mod-scroll").find('tbody').find_all('tr')
     
-
-
-getVCTPlayers(minRounds = 0, agent = "Skye")
+    for player in players:
+        name = player.find('div', class_ = "text-of").getText().strip()
+        playerList.append(name)
+    return playerList
