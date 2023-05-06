@@ -8,7 +8,7 @@ def getVCTPlayers(minRounds = 200, agent = "all", mapid = "all", timespan = 60):
     url = "https://www.vlr.gg/stats/?event_group_id=all&event_id=1189&series_id=all&region=all&country=all&min_rounds=" + minRounds + "&min_rating=1550&agent=" + agent + "&map_id=" + mapid + "&timespan=" + timespan + "d"
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
-    print(url)
+    #print(url)
 
     playerList = []
     players = soup.find('table', class_ = "wf-table mod-stats mod-scroll").find('tbody').find_all('tr')
@@ -25,7 +25,7 @@ def getPlayerStats(playerID):
     playerHeader = soup.find('div', class_ = "player-header")
     ign = playerHeader.find('h1').getText().strip()
     name = playerHeader.find('h2').getText().strip()
-    print(ign + "\n" + name)
+    #print(ign + "\n" + name)
     agentSection = soup.find('table', class_="wf-table").find('tbody').find_all('tr')
     agentDict = {}
     # agentInfo = {
@@ -87,9 +87,9 @@ def getPlayerStats(playerID):
 
 
         agentDict[name] = agentInfo
-        return agentDict
+    return agentDict
 
-def getLiveMatches():
+def getLiveMatches(): #Scrapes vlr homepage to get live matches and their stats
     liveMatches = {}
     tempMatch = {}
     url = "https://www.vlr.gg"
@@ -114,3 +114,99 @@ def getLiveMatches():
 
             liveMatches[tempMatch["teamA"] + " vs " + tempMatch["teamB"]] = tempMatch
     return liveMatches
+
+def getMatchStats(matchID): #returns a dictionary of the stats of match given by id
+    matchStats = {}
+    url = "https://www.vlr.gg/" + str(matchID)
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, 'html.parser')
+
+    mainHeader = soup.find('div', class_ = "match-header-vs")
+
+    teamAName = mainHeader.find('div', class_ = "match-header-link-name mod-1").findAll('div')[0].getText().strip()
+    teamBName = mainHeader.find('div', class_ = "match-header-link-name mod-2").findAll('div')[0].getText().strip()
+
+    teamAScore = int(mainHeader.find('div', class_ = "js-spoiler").findAll('span')[0].getText().strip())
+    teamBScore = int(mainHeader.find('div', class_ = "js-spoiler").findAll('span')[2].getText().strip())
+    
+    winner = ""
+    if(teamAScore > teamBScore):
+        winner = teamAName
+        loser = teamBName
+    else:
+        winner = teamBName
+        loser = teamAName
+
+    superHeader = soup.find('div', class_ = "match-header-super")
+    mainEvent = superHeader.find('a').find('div').findAll('div')[0].getText().strip()
+    eventSubtext = superHeader.find('a').find('div').findAll('div')[1].getText().strip()
+    eventSubtext = eventSubtext.replace("\t", "")
+    eventSubtext = eventSubtext.replace("\n", "")
+
+    statsContainer = soup.find('div', class_ = "vm-stats-container").findAll('div', class_ = "vm-stats-game")
+    mapDetails = getPlayerDataMatch(statsContainer, teamAName, teamBName)
+    
+    matchStats["Event"] = mainEvent
+    matchStats["eventDetail"] = eventSubtext
+    matchStats["Teams"] = teamAName + " vs " + teamBName
+    matchStats["teamA"] = teamAName
+    matchStats["teamB"] = teamBName
+    matchStats["scoreA"] = teamAScore
+    matchStats["scoreB"] = teamBScore
+    matchStats["Winner"] = winner
+    matchStats["Loser"] = loser
+    matchStats["Maps"] = mapDetails
+
+def getPlayerDataMatch(statsContainer, teamAName, teamBName): #to help with getMatchStats
+    matchStats = {}
+    for game in statsContainer:
+        mapDetails = {}
+        if(not 'mod-active' in game['class']):
+            mapName = game.find('div', class_ = "map").getText().strip().split()[0]
+            mapDetails["rndsA"] = game.findAll('div', class_ = "score")[0].getText().strip().split()[0]
+            mapDetails["rndsB"] = game.findAll('div', class_ = "score")[1].getText().strip().split()[0]
+            mapDetails["TrndsA"] = game.findAll('span', class_ = "mod-t")[0].getText().strip()
+            mapDetails["TrndsB"] = game.findAll('span', class_ = "mod-t")[1].getText().strip()
+            mapDetails["CTrndsA"] = game.findAll('span', class_ = "mod-ct")[0].getText().strip()
+            mapDetails["CTrndsB"] = game.findAll('span', class_ = "mod-ct")[1].getText().strip()
+
+            playerTables = game.findAll('tbody')
+            mapDetails[teamAName] = loadPlayerData(playerTables[0].findAll('tr'))
+            mapDetails[teamBName] = loadPlayerData(playerTables[1].findAll('tr'))
+
+            matchStats[mapName] = mapDetails
+    print(matchStats)
+
+def loadPlayerData(players): #to help with getPlayerDataMatch
+    playerStats = {}
+    for player in players:
+        playerDic = {}
+        info = player.findAll('td')
+        playerDic["name"] = player.find('div', class_ = "text-of").getText().strip().split()[0]
+        playerDic["agent"] = player.find('img')["alt"]
+        playerDic["rating"] = info[2].getText().strip().split()[0]
+        playerDic["acs"] = info[3].getText().strip().split()[0]
+        playerDic["kills"] = info[4].getText().strip().split()[0]
+        playerDic["deaths"] = info[5].find('span', class_ = "side mod-both").getText().strip().split()[0]
+        playerDic["assists"] = info[6].getText().strip().split()[0]
+        playerDic["kdDiff"] = info[7].getText().strip().split()[0]
+        playerDic["kast"] = info[8].getText().strip().split()[0]
+        playerDic["adr"] = info[9].getText().strip().split()[0]
+        playerDic["hsPercent"] = info[10].getText().strip().split()[0]
+        playerDic["firstKills"] = info[11].getText().strip().split()[0]
+        playerDic["firstDeaths"] = info[12].getText().strip().split()[0]
+        playerDic["fkDiff"] = info[13].getText().strip().split()[0]
+
+        playerStats[playerDic["name"]] = playerDic
+    return playerStats
+
+
+
+                    
+
+
+
+                    
+
+
+
