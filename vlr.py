@@ -5,8 +5,6 @@ import collections
 from collections import OrderedDict
 from datetime import datetime
 from dateutil.parser import parse
-import time
-
 
 def getVCTPlayers(minRounds = 200, agent = "all", mapid = "all", timespan = 60):
     minRounds = str(minRounds)
@@ -28,30 +26,14 @@ def getPlayerStats(playerID):
     url = "https://www.vlr.gg/player/" + str(playerID)
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
+
     playerHeader = soup.find('div', class_ = "player-header")
     ign = playerHeader.find('h1').getText().strip()
     name = playerHeader.find('h2').getText().strip()
-    #print(ign + "\n" + name)
+
     agentSection = soup.find('table', class_="wf-table").find('tbody').find_all('tr')
     agentDict = {}
-    # agentInfo = {
-    #     # "name": "",
-    #     # "pick": "",
-    #     # "rnds": "",
-    #     # "acs": "",
-    #     # "kd": "",
-    #     # "adr": "",
-    #     # "kast": "",
-    #     # "kpr": "",
-    #     # "apr": "",
-    #     # "fkpr": "",
-    #     # "fdpr": "",
-    #     # "kills": "",
-    #     # "deaths": "",
-    #     # "assists": "",
-    #     # "fk": "",
-    #     # "fd": ""
-    # }
+
     for agent in agentSection:
         agentInfo = {}
         name = agent.findAll('td')[0].find('img')["alt"]
@@ -90,8 +72,6 @@ def getPlayerStats(playerID):
         agentInfo["FK"] = fk
         agentInfo["FD"] = fd
         agentInfo["FkFdDiff"] = fkfdDiff
-
-
         agentDict[name] = agentInfo
     return agentDict
 
@@ -236,7 +216,7 @@ def updateMatchDatabase():
         datesInPage = page.findAll('div', class_ = "wf-label mod-large")
         matchesInPage = page.findAll('div', class_ = "wf-card")
         
-        for i in range(1, len(datesInPage) + 1): #Loop through all dates
+        for i in range(1, len(datesInPage) + 1): #Loop through all dates in page
             date = datesInPage[i - 1].getText().strip()
             
             #Strips extra text from dates
@@ -299,6 +279,7 @@ def updateMatchDatabase():
         with open("matchesDatabase.json", "w") as outfile:
             json.dump(matches, outfile)
 
+        #Loop beforesecondToLatestDay no longer true 
         if(beforesecondToLatestDay == False):
             break
 
@@ -321,6 +302,5 @@ def searchDatabase(**kwargs):
                     valid = False
                     break
             if valid:
-                
                 results.append(matches[date][match])
     return results
