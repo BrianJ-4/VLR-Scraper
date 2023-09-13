@@ -143,6 +143,8 @@ def getMatchStats(matchID): #returns a dictionary of the stats of match given by
     matchStats["Loser"] = loser
     matchStats["Maps"] = mapDetails
 
+    return matchStats
+
 def getPlayerDataMatch(statsContainer, teamAName, teamBName): #to help with getMatchStats
     matchStats = {}
     for game in statsContainer:
@@ -161,7 +163,7 @@ def getPlayerDataMatch(statsContainer, teamAName, teamBName): #to help with getM
             mapDetails[teamBName] = loadPlayerData(playerTables[1].findAll('tr'))
 
             matchStats[mapName] = mapDetails
-    print(matchStats)
+    return matchStats
 
 def loadPlayerData(players): #to help with getPlayerDataMatch
     playerStats = {}
@@ -290,15 +292,15 @@ def searchDatabase(**kwargs):
 
     validFilters = OrderedDict()
     for arg in kwargs:
-        if kwargs[arg] != "":
-            validFilters[arg] = kwargs[arg]           
+        if kwargs[arg] != None:
+            validFilters[arg] = kwargs[arg]         
 
     results = []
     for date in matches:
         for match in matches[date]:
             valid = True
             for key, value in validFilters.items():
-                if matches[date][match][key] != value:
+                if matches[date][match][key] != value.upper():
                     valid = False
                     break
             if valid:
