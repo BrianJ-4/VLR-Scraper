@@ -23,7 +23,7 @@ def getVCTPlayers(minRounds = 200, agent = "all", mapid = "all", timespan = 60):
     return playerList
 
 def getPlayerStats(playerID):
-    url = "https://www.vlr.gg/player/" + str(playerID)
+    url = "https://www.vlr.gg/player/" + str(playerID) + "/?timespan=all"
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
 
@@ -37,7 +37,8 @@ def getPlayerStats(playerID):
     for agent in agentSection:
         agentInfo = {}
         name = agent.findAll('td')[0].find('img')["alt"]
-        pick = agent.findAll('td')[1].getText().strip()[3:].strip()
+        pick = agent.findAll('td')[1].getText().strip()
+        pick = pick[pick.index(")") + 1:].strip()
         rnds = agent.findAll('td')[2].getText().strip()
         rating = agent.findAll('td')[3].getText().strip()
         acs = agent.findAll('td')[4].getText().strip()
@@ -172,13 +173,19 @@ def loadPlayerData(players): #to help with getPlayerDataMatch
         info = player.findAll('td')
         playerDic["name"] = player.find('div', class_ = "text-of").getText().strip().split()[0]
         playerDic["agent"] = player.find('img')["alt"]
-        playerDic["rating"] = info[2].getText().strip().split()[0]
+        try:
+            playerDic["rating"] = info[2].getText().strip().split()[0]
+        except IndexError:
+            playerDic["rating"] = "Not Available"
         playerDic["acs"] = info[3].getText().strip().split()[0]
         playerDic["kills"] = info[4].getText().strip().split()[0]
         playerDic["deaths"] = info[5].find('span', class_ = "side mod-both").getText().strip().split()[0]
         playerDic["assists"] = info[6].getText().strip().split()[0]
         playerDic["kdDiff"] = info[7].getText().strip().split()[0]
-        playerDic["kast"] = info[8].getText().strip().split()[0]
+        try:
+            playerDic["kast"] = info[8].getText().strip().split()[0]
+        except IndexError:
+            playerDic["kast"] = "Not Available"
         playerDic["adr"] = info[9].getText().strip().split()[0]
         playerDic["hsPercent"] = info[10].getText().strip().split()[0]
         playerDic["firstKills"] = info[11].getText().strip().split()[0]
@@ -283,9 +290,9 @@ def updateMatchDatabase():
 
         #Loop beforesecondToLatestDay no longer true 
         if(beforesecondToLatestDay == False):
-            break
+            break    
 
-def searchDatabase(**kwargs):
+def searchMatchDatabase(**kwargs):
     with open('matchesDatabase.json', 'r') as openfile:
         matches = json.load(openfile)
         matches = collections.OrderedDict(matches)
@@ -306,3 +313,74 @@ def searchDatabase(**kwargs):
             if valid:
                 results.append(matches[date][match])
     return results
+
+def updatePlayerDatabase(key):
+    #This is to update players.html
+    #Only needs to be used if there is a new player added
+    #Should only have to be used rarely
+    if(key == 0):
+        url = "https://www.vlr.gg/stats/?event_group_id=all&event_id=all&region=all&country=all&min_rounds=200&min_rating=1550&agent=all&map_id=all&timespan=all"
+        response = requests.get(url)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        with open("players.html", "w", encoding = 'utf-8') as outfile:
+            outfile.write(str(soup.prettify()))
+            
+    #This is for updating playersDatabase.json with the content from players.html
+    elif(key == 1):
+        with open("players.html", encoding = "utf8") as outfile:
+            soup = BeautifulSoup(outfile, 'html.parser')
+        playerRows = soup.find('table', class_ = "wf-table mod-stats mod-scroll").find('tbody').findAll('tr')
+        players = {}
+        for player in playerRows:
+            data = player.findAll('td')[0].find('a')['href']
+            team = player.find('div', class_ = "stats-player-country").getText().strip().upper()
+            if(team == ''): #Players with no team default to No Team
+                team = "No Team"
+            firstSlash = data.find('/')
+            secondSlash = data.find('/', firstSlash + 1)
+            thirdSlash = data.find('/', secondSlash + 1)
+            name = data[thirdSlash + 1:].upper()
+            id = int(data[secondSlash + 1 : thirdSlash])
+
+            if(name in players):
+                size = len(players[name])
+                players[name][size] = {
+                    "Name" : name,
+                    "ID" : id,
+                    "Team" : team
+                }
+            else:
+                players[name] = {
+                    "0" : {
+                    "Name" : name,
+                    "ID" : id,
+                    "Team" : team
+                    }
+                }
+
+        with open("playersDatabase.json", "w") as outfile:
+            json.dump(players, outfile)
+       
+def searchPlayerDatabase(key, arg):
+    players = {}
+    with open('playersDatabase.json', 'r') as openfile:
+        players = json.load(openfile)
+        players = collections.OrderedDict(players)
+    #Key = 0 means search for player name
+    if(key == 0):
+        resultsDic = {}
+        try:
+            resultsDic[arg] = (players[arg])
+        except KeyError:
+            return "Player Not Found"
+        return resultsDic
+    #Else arg is a team name and return players in team
+    else:
+        resultsList = []
+        for name in players:
+            for player in players[name]:
+                if(players[name][player]["Team"] == arg):
+                    resultsList.append(players[name][player])
+        return resultsList
+    
+    
