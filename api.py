@@ -6,6 +6,10 @@ from vlr import*
 
 app = FastAPI()
 
+#getVCTPlayers
+@app.get("/players/rounds:{minRounds}/agent:{agent}/map:{mapid}/timespan:{timespan}")
+async def getMatch(match_id):
+    return getMatchStats(match_id)
 
 #getMatchStats
 @app.get("/match/{match_id}")
@@ -45,12 +49,12 @@ async def searchMatchData(team01, team02, event, date):
     results += searchMatchDatabase(Team1 = team02, Team2 = team01, Event = event, Date = date)
     return results
 
-#updatePlayerDatabase
-@app.get("/updatePlayer/key:{key}")
-async def updatePlayerData(key):
-    return updatePlayerDatabase(int(key))
+#getNews
+@app.get("/getNews/page:{pageNum}")
+async def getNewsPage(pageNum):
+    return getNews(pageNum)
 
-#searchPlayerDatabase
-@app.get("/searchPlayer/key:{key}/arg:{arg}")
-async def searchPlayerData(key, arg):
-    return searchPlayerDatabase(int(key), arg)
+#getNews
+@app.get("/getArticle/articleNum:{articleNum}")
+async def getArticlePage(articleNum):
+    return getArticle(articleNum)
