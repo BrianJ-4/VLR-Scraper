@@ -54,7 +54,12 @@ async def searchMatchData(team01, team02, event, date):
 async def getNewsPage(pageNum):
     return getNews(pageNum)
 
-#getNews
+#getArticle
 @app.get("/getArticle/articleNum:{articleNum}")
 async def getArticlePage(articleNum):
     return getArticle(articleNum)
+
+#search
+@app.get("/search/query:{query}/type:{type}")
+async def searchVLR(query, type):
+    return search(query, type)
