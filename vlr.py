@@ -1,6 +1,6 @@
 import requests
 import json
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment
 import collections
 from collections import OrderedDict
 from datetime import datetime
@@ -10,9 +10,14 @@ def getVCTPlayers(minRounds = 200, agent = "all", mapid = "all", timespan = 60):
     minRounds = str(minRounds)
     timespan = str(timespan)
     mapid = str(mapid)
-    url = "https://www.vlr.gg/stats/?event_group_id=all&event_id=1189&series_id=all&region=all&country=all&min_rounds=" + minRounds + "&min_rating=1550&agent=" + agent + "&map_id=" + mapid + "&timespan=" + timespan + "d"
+    if(timespan == "all"):
+        url = "https://www.vlr.gg/stats/?event_group_id=all&event_id=1189&series_id=all&region=all&country=all&min_rounds=" + minRounds + "&min_rating=1550&agent=" + agent + "&map_id=" + mapid + "&timespan=" + timespan
+    else:
+        url = "https://www.vlr.gg/stats/?event_group_id=all&event_id=1189&series_id=all&region=all&country=all&min_rounds=" + minRounds + "&min_rating=1550&agent=" + agent + "&map_id=" + mapid + "&timespan=" + timespan + "d"
+
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
+    print(url)
 
     playerList = []
     players = soup.find('table', class_ = "wf-table mod-stats mod-scroll").find('tbody').find_all('tr')
@@ -130,6 +135,15 @@ def getMatchStats(matchID): #returns a dictionary of the stats of match given by
     eventSubtext = eventSubtext.replace("\t", "")
     eventSubtext = eventSubtext.replace("\n", "")
 
+    mapSection = soup.find('div', class_ = "match-header-note")
+    if(mapSection != None):
+        mapText = mapSection.getText().strip()
+        picksAndBans = mapText.split(";")
+        for i in range(0, len(picksAndBans)):
+            picksAndBans[i] = picksAndBans[i].strip()
+    else:
+        picksAndBans = ["None"]
+    
     statsContainer = soup.find('div', class_ = "vm-stats-container").findAll('div', class_ = "vm-stats-game")
     mapDetails = getPlayerDataMatch(statsContainer, teamAName, teamBName)
     
@@ -142,6 +156,7 @@ def getMatchStats(matchID): #returns a dictionary of the stats of match given by
     matchStats["scoreB"] = teamBScore
     matchStats["Winner"] = winner
     matchStats["Loser"] = loser
+    matchStats["PicksAndBans"] = picksAndBans
     matchStats["Maps"] = mapDetails
 
     return matchStats
@@ -313,74 +328,103 @@ def searchMatchDatabase(**kwargs):
             if valid:
                 results.append(matches[date][match])
     return results
+    
+def getNews(page = 1):
+    newsDic = {}
+    url = "https://www.vlr.gg/news/?page=" + str(page)
 
-def updatePlayerDatabase(key):
-    #This is to update players.html
-    #Only needs to be used if there is a new player added
-    #Should only have to be used rarely
-    if(key == 0):
-        url = "https://www.vlr.gg/stats/?event_group_id=all&event_id=all&region=all&country=all&min_rounds=200&min_rating=1550&agent=all&map_id=all&timespan=all"
-        response = requests.get(url)
-        soup = BeautifulSoup(response.content, 'html.parser')
-        with open("players.html", "w", encoding = 'utf-8') as outfile:
-            outfile.write(str(soup.prettify()))
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, 'html.parser')
+
+    news = soup.find('div', class_ = 'wf-card').findAll('a')
+    count = 0
+
+    for article in news:
+        articleURL = article['href']
+        parts = articleURL.split('/')
+        articleNum = parts[1]
+        print(articleNum)
+        text = article.find('div', style = True)
+        title = text.findAll('div', style = True)[0].getText().strip()
+        subTitle = text.findAll('div', style = True)[1].getText().strip()
+
+        section = text.find('div', class_ = 'ge-text-light').getText().strip()
+        parts = section.split(" • ")
+        date = parts[0].strip()
+        date = date[date.index("•") + 2:]
+        author = parts[1]
+        author = author[author.index("by") + 3:]
+
+        newsDic[count] = {
+            "Title" : title,
+            "subTitle" : subTitle,
+            "Date" : date,
+            "Author" : author,
+            "URLNum" : articleNum,
+        }
+        count += 1
+
+def getArticle(articleNum):
+    print(articleNum)
+
+    url = "https://www.vlr.gg/" + articleNum
+
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, 'html.parser')
+
+    #Remove uneeded text that is not visible on webpage
+    for div in soup.find_all("span", class_ = 'wf-hover-card mod-article article-ref-card'): 
+        div.decompose()
+
+    #Remove comment text
+    comments = soup.findAll(text = lambda text:isinstance(text, Comment))
+    for comment in comments:
+        comment.extract()
+    
+    # #Remove caption text
+    # captions = soup.findAll('em')
+    # for caption in captions:
+    #     caption.extract()
+
+    article = soup.find('div', class_  = 'article-body')
+    print(url)
+    return article.prettify()
+    # with open("temp.html", "w", encoding = 'utf-8') as outfile:
+    #     outfile.write(str(article.prettify()))
+
+    # #look into this kind: https://www.vlr.gg/264266/riot-previews-major-balance-changes-to-11-agents
+
+
+def search(query, type):
+    #Accepted types are all, teams, players, events, series
+    url = "https://www.vlr.gg/search/?q=" + query + "&type=" + type
+
+    results = {}
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    toDelete = soup.find('div', class_ = 'wf-card mod-dark')
+    toDelete.decompose()
+    res = soup.find('div', class_ = 'wf-card').findAll('a', href = True)
+
+    i = 0
+    for item in res:
+        link = item['href']
+        title = item.find('div', class_ = 'search-item-title').getText().strip()
+        title = title.replace("\t","").replace("\n", "")
+        description = item.find('div', class_ = 'search-item-desc')
+
+        if(description != None):
+            description = description.getText().strip()
+            description = description.replace("\t", "").replace("\n", "")
+        else:
+            description = "None"
             
-    #This is for updating playersDatabase.json with the content from players.html
-    elif(key == 1):
-        with open("players.html", encoding = "utf8") as outfile:
-            soup = BeautifulSoup(outfile, 'html.parser')
-        playerRows = soup.find('table', class_ = "wf-table mod-stats mod-scroll").find('tbody').findAll('tr')
-        players = {}
-        for player in playerRows:
-            data = player.findAll('td')[0].find('a')['href']
-            team = player.find('div', class_ = "stats-player-country").getText().strip().upper()
-            if(team == ''): #Players with no team default to No Team
-                team = "No Team"
-            firstSlash = data.find('/')
-            secondSlash = data.find('/', firstSlash + 1)
-            thirdSlash = data.find('/', secondSlash + 1)
-            name = data[thirdSlash + 1:].upper()
-            id = int(data[secondSlash + 1 : thirdSlash])
-
-            if(name in players):
-                size = len(players[name])
-                players[name][size] = {
-                    "Name" : name,
-                    "ID" : id,
-                    "Team" : team
-                }
-            else:
-                players[name] = {
-                    "0" : {
-                    "Name" : name,
-                    "ID" : id,
-                    "Team" : team
-                    }
-                }
-
-        with open("playersDatabase.json", "w") as outfile:
-            json.dump(players, outfile)
-       
-def searchPlayerDatabase(key, arg):
-    players = {}
-    with open('playersDatabase.json', 'r') as openfile:
-        players = json.load(openfile)
-        players = collections.OrderedDict(players)
-    #Key = 0 means search for player name
-    if(key == 0):
-        resultsDic = {}
-        try:
-            resultsDic[arg] = (players[arg])
-        except KeyError:
-            return "Player Not Found"
-        return resultsDic
-    #Else arg is a team name and return players in team
-    else:
-        resultsList = []
-        for name in players:
-            for player in players[name]:
-                if(players[name][player]["Team"] == arg):
-                    resultsList.append(players[name][player])
-        return resultsList
-    
-    
+        imageLink = item.find('img')['src']
+        results[i] = {
+            "title": title,
+            "description": description,
+            "link": link,
+            "imageLink": imageLink
+        }
+        i += 1
+    return results
