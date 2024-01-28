@@ -47,6 +47,7 @@ async def searchMatchData(team01, team02, event, date):
     
     results = searchMatchDatabase(Team1 = team01, Team2 = team02, Event = event, Date = date)
     results += searchMatchDatabase(Team1 = team02, Team2 = team01, Event = event, Date = date)
+    results = sorted(results, key=lambda x: x["Date"], reverse = True)
     return results
 
 #getNews
