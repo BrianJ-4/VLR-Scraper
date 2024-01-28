@@ -427,4 +427,5 @@ def search(query, type):
             "imageLink": imageLink
         }
         i += 1
+        
     return results
