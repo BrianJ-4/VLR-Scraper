@@ -6,26 +6,6 @@ from collections import OrderedDict
 from datetime import datetime
 from dateutil.parser import parse
 
-def getVCTPlayers(minRounds = 200, agent = "all", mapid = "all", timespan = 60):
-    minRounds = str(minRounds)
-    timespan = str(timespan)
-    mapid = str(mapid)
-    if(timespan == "all"):
-        url = "https://www.vlr.gg/stats/?event_group_id=all&event_id=1189&series_id=all&region=all&country=all&min_rounds=" + minRounds + "&min_rating=1550&agent=" + agent + "&map_id=" + mapid + "&timespan=" + timespan
-    else:
-        url = "https://www.vlr.gg/stats/?event_group_id=all&event_id=1189&series_id=all&region=all&country=all&min_rounds=" + minRounds + "&min_rating=1550&agent=" + agent + "&map_id=" + mapid + "&timespan=" + timespan + "d"
-
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, 'html.parser')
-    print(url)
-
-    playerList = []
-    players = soup.find('table', class_ = "wf-table mod-stats mod-scroll").find('tbody').find_all('tr')
-    
-    for player in players:
-        name = player.find('div', class_ = "text-of").getText().strip()
-        playerList.append(name)
-    return playerList
 
 def getPlayerStats(playerID):
     url = "https://www.vlr.gg/player/" + str(playerID) + "/?timespan=all"
@@ -80,32 +60,6 @@ def getPlayerStats(playerID):
         agentInfo["FkFdDiff"] = fkfdDiff
         agentDict[name] = agentInfo
     return agentDict
-
-def getLiveMatches(): #Scrapes vlr homepage to get live matches and their stats
-    liveMatches = {}
-    tempMatch = {}
-    url = "https://www.vlr.gg"
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, 'html.parser')
-    matches = soup.find('div', class_ = "wf-module wf-card mod-home-matches").find_all('a')
-
-    for match in matches:
-        tempMatch = {}
-        if(match.find('div', class_ = "h-match-eta mod-live")):
-            tempMatch["teamA"] = match.findAll('div', class_ = "h-match-team-name")[0].getText().strip()
-            tempMatch["teamB"] = match.findAll('div', class_ = "h-match-team-name")[1].getText().strip()
-            tempMatch["teamAMaps"] = match.findAll('div', class_ = "h-match-team-score mod-count js-spoiler")[0].getText().strip()
-            tempMatch["teamBMaps"] = match.findAll('div', class_ = "h-match-team-score mod-count js-spoiler")[1].getText().strip()
-            
-            if(match.find('div', class_ = "h-match-team-rounds js-spoiler")):
-                tempMatch["currMapRndsA"] = match.findAll('div', class_ = "h-match-team-rounds js-spoiler")[0].getText().strip()
-                tempMatch["currMapRndsB"] = match.findAll('div', class_ = "h-match-team-rounds js-spoiler")[1].getText().strip()
-            else:
-                tempMatch["currMapRndsA"] = 0
-                tempMatch["currMapRndsB"] = 0
-
-            liveMatches[tempMatch["teamA"] + " vs " + tempMatch["teamB"]] = tempMatch
-    return liveMatches
 
 def getMatchStats(matchID): #returns a dictionary of the stats of match given by id
     matchStats = {}
@@ -328,71 +282,6 @@ def searchMatchDatabase(**kwargs):
             if valid:
                 results.append(matches[date][match])
     return results
-    
-def getNews(page = 1):
-    newsDic = {}
-    url = "https://www.vlr.gg/news/?page=" + str(page)
-
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, 'html.parser')
-
-    news = soup.find('div', class_ = 'wf-card').findAll('a')
-    count = 0
-
-    for article in news:
-        articleURL = article['href']
-        parts = articleURL.split('/')
-        articleNum = parts[1]
-        print(articleNum)
-        text = article.find('div', style = True)
-        title = text.findAll('div', style = True)[0].getText().strip()
-        subTitle = text.findAll('div', style = True)[1].getText().strip()
-
-        section = text.find('div', class_ = 'ge-text-light').getText().strip()
-        parts = section.split(" • ")
-        date = parts[0].strip()
-        date = date[date.index("•") + 2:]
-        author = parts[1]
-        author = author[author.index("by") + 3:]
-
-        newsDic[count] = {
-            "Title" : title,
-            "subTitle" : subTitle,
-            "Date" : date,
-            "Author" : author,
-            "URLNum" : articleNum,
-        }
-        count += 1
-
-def getArticle(articleNum):
-    print(articleNum)
-
-    url = "https://www.vlr.gg/" + articleNum
-
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, 'html.parser')
-
-    #Remove uneeded text that is not visible on webpage
-    for div in soup.find_all("span", class_ = 'wf-hover-card mod-article article-ref-card'): 
-        div.decompose()
-
-    #Remove comment text
-    comments = soup.findAll(text = lambda text:isinstance(text, Comment))
-    for comment in comments:
-        comment.extract()
-    
-    # #Remove caption text
-    # captions = soup.findAll('em')
-    # for caption in captions:
-    #     caption.extract()
-
-    article = soup.find('div', class_  = 'article-body')
-    print(url)
-    return article.prettify()
-    # with open("temp.html", "w", encoding = 'utf-8') as outfile:
-    #     outfile.write(str(article.prettify()))
-
-    # #look into this kind: https://www.vlr.gg/264266/riot-previews-major-balance-changes-to-11-agents
 
 
 def search(query, type):

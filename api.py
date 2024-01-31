@@ -1,15 +1,37 @@
-from typing import Union
-
 from fastapi import FastAPI
 
 from vlr import*
+from news import*   
+from matches import*
 
 app = FastAPI()
 
-#getVCTPlayers
-@app.get("/players/rounds:{minRounds}/agent:{agent}/map:{mapid}/timespan:{timespan}")
-async def getMatch(match_id):
-    return getMatchStats(match_id)
+#matches.py-------------------------------------------
+
+#getUpcomingAndLive
+@app.get("/matches/getUpcomingAndLive/page:{page}")
+async def getUpcomingAndLiveMatches(page):
+    return getUpcomingAndLive(page)
+
+#getResults
+@app.get("/matches/getResults/page:{page}")
+async def getMatchResults(page):
+    return getResults(page)
+
+#news.py-------------------------------------------
+
+#getNews
+@app.get("/getNews/page:{pageNum}")
+async def getNewsPage(pageNum):
+    return getNews(pageNum)
+
+#getArticle
+@app.get("/getArticle/articleNum:{articleNum}")
+async def getArticlePage(articleNum):
+    return getArticle(articleNum)
+
+
+#--------------------------------------------------
 
 #getMatchStats
 @app.get("/match/{match_id}")
@@ -20,11 +42,6 @@ async def getMatch(match_id):
 @app.get("/player/{player_id}")
 async def getPlayer(player_id):
     return getPlayerStats(player_id)
-
-#getLiveMatches
-@app.get("/live")
-async def getLive():
-    return getLiveMatches()
 
 #updateMatchDatabase
 @app.get("/updateMatch")
@@ -50,17 +67,8 @@ async def searchMatchData(team01, team02, event, date):
     results = sorted(results, key=lambda x: x["Date"], reverse = True)
     return results
 
-#getNews
-@app.get("/getNews/page:{pageNum}")
-async def getNewsPage(pageNum):
-    return getNews(pageNum)
-
-#getArticle
-@app.get("/getArticle/articleNum:{articleNum}")
-async def getArticlePage(articleNum):
-    return getArticle(articleNum)
-
 #search
 @app.get("/search/query:{query}/type:{type}")
 async def searchVLR(query, type):
     return search(query, type)
+
