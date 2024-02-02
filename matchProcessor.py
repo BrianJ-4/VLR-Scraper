@@ -17,7 +17,7 @@
 #           - Streams and vods (When Available)
 #           - Head-To-Head stats (When Available)
 #           - Scores (When Available)
-#           - Stats of all players from all maps (When Available)
+#           - Stats of all players from all played maps and the combined stats of all maps (When Available)
 #
 #   2/2/2024 
 #       - Created 
