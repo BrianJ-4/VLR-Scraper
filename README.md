@@ -1,2 +1,2 @@
 # VLR-Scraper
-<p>Python vlr.gg scraper <br>I'm learning how to use Python and Beautiful Soup to perform scraping. This is a project to help me learn and improve.</p>
+<p>Python vlr.gg scraper <br>Using Python and Beautiful Soup to perform scraping. Plan to make frontend app with as close as possible to one to one parity of vlr.gg.</p>
