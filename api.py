@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from vlr import*
 from news import*   
 from matches import*
+from matchProcessor import*
 
 app = FastAPI()
 
@@ -18,7 +19,7 @@ async def getUpcomingAndLiveMatches(page):
 async def getMatchResults(page):
     return getResults(page)
 
-#news.py-------------------------------------------
+#news.py----------------------------------------------
 
 #getNews
 @app.get("/getNews/page:{pageNum}")
@@ -31,13 +32,14 @@ async def getArticlePage(articleNum):
     return getArticle(articleNum)
 
 
-#--------------------------------------------------
+#matchProcessor.py------------------------------------
 
 #getMatchStats
-@app.get("/match/{match_id}")
+@app.get("/getMatchPage/{match_id}")
 async def getMatch(match_id):
-    return getMatchStats(match_id)
+    return getMatchPage(match_id)
 
+#Others-----------------------------------------------
 #getPlayerStats
 @app.get("/player/{player_id}")
 async def getPlayer(player_id):

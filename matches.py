@@ -24,7 +24,7 @@ def getUpcomingAndLive(page):
             event = match.find('div', class_ = 'match-item-event text-of').getText().replace(matchInEvent, '').strip()
             status = match.find('div', class_ = 'ml-status').getText().strip()
             if(status == "LIVE"):
-                scores = match.findAll('div', class_ = 'match-item-vs-team-score  js-spoiler ')
+                scores = match.findAll('div', class_ = 'match-item-vs-team-score')
                 dateMatches[k] = {
                     "link": link,
                     "team1": team1,
