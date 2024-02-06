@@ -49,7 +49,10 @@ def getUpcomingAndLive(page):
                     "upcoming": upcoming
                 }
             k += 1
-        upcomingAndLiveMatches[dates[i].getText().strip()] = dateMatches
+        if("Today" in dates[i].getText().strip()):
+            upcomingAndLiveMatches["Today"] = dateMatches
+        else:
+            upcomingAndLiveMatches[dates[i].getText().strip()] = dateMatches
         i += 1
     
     return upcomingAndLiveMatches
