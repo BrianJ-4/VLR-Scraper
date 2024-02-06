@@ -18,6 +18,7 @@
 #           - Head-To-Head stats (When Available)
 #           - Scores (When Available)
 #           - Stats of all players from all played maps and the combined stats of all maps (When Available)
+#           - Economy stats of all rounds of all maps (When Available)
 #
 #   2/2/2024 
 #       - Created 
@@ -33,9 +34,13 @@
 #       - Added Team Image Links
 #       - Added Vods and Streams
 #       - Need to find better way to write lines 202-253
+#   2/5/2024
+#       - Added Economy stats
+#       - Still need to find better way to write lines 232-283
 #----------------------------------------------------------------------------------------------------------------
-import requests
+import requests 
 import json
+import re
 from bs4 import BeautifulSoup, Comment
 
 def getMatchPage(matchID): #returns a dictionary of the stats of match given by id
@@ -53,11 +58,11 @@ def getMatchPage(matchID): #returns a dictionary of the stats of match given by 
     if('vlr.png' in teamAImageLink):
         teamAImageLink = "https://www.vlr.gg/img/vlr/tmp/vlr.png"
     else:
-        teamAImageLink = "https://" + teamAImageLink
+        teamAImageLink = "https:" + teamAImageLink
     if('vlr.png' in teamBImageLink):
         teamBImageLink = "https://www.vlr.gg/img/vlr/tmp/vlr.png"
     else:
-        teamBImageLink = "https://" + teamBImageLink
+        teamBImageLink = "https:" + teamBImageLink
 
     teamAName = mainHeader.find('div', class_ = "match-header-link-name mod-1").findAll('div')[0].getText().strip()
     teamBName = mainHeader.find('div', class_ = "match-header-link-name mod-2").findAll('div')[0].getText().strip()
@@ -182,7 +187,9 @@ def getMatchPage(matchID): #returns a dictionary of the stats of match given by 
         matchStats["Winner"] = winner
         matchStats["Loser"] = loser
         matchStats["Maps"] = mapDetails
-    
+    if('final' in matchStatus):
+        matchStats["Economy"] = getEconomyStats(matchID)
+
     return matchStats
 
 def getPlayerDataMatch(statsContainer, teamAName, teamBName): #to help with getMatchStats
@@ -214,6 +221,7 @@ def getPlayerDataMatch(statsContainer, teamAName, teamBName): #to help with getM
         mapDetails[teamBName] = loadPlayerData(playerTables[1].findAll('tr'))
 
         matchStats[mapName] = mapDetails
+
     return matchStats
 
 def loadPlayerData(players): #to help with getPlayerDataMatch
@@ -276,4 +284,59 @@ def loadPlayerData(players): #to help with getPlayerDataMatch
             playerDic["fkDiff"] = '0'
 
         playerStats[name] = playerDic
+
     return playerStats
+
+def getEconomyStats(matchID):
+    matchEconStats = {}
+    url = "https://www.vlr.gg/" + str(matchID) + "/?game=all&tab=economy"
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    
+    soup.find('div', class_ = 'vm-stats-game mod-active').decompose()
+    allStats = soup.find('div', class_ = 'vm-stats-container').findAll('div', class_ = 'vm-stats-game')
+    allStats = [mapStat for mapStat in allStats if 'not available yet' not in mapStat.getText()]
+
+    i = 1
+    for mapStat in allStats:
+        mapEconStats = {}
+        econStats = mapStat.findAll('table', class_ = 'wf-table-inset mod-econ')[1].findAll('td')
+        j = 1
+        for stat in econStats:
+            if('BANK' not in stat.getText()):
+                comments = stat.find_all(string = isComment)
+                team1Bank = stat.findAll('div', class_ = 'bank')[0].getText().strip()
+                team2Bank = stat.findAll('div', class_ = 'bank')[1].getText().strip()
+                team1Loadout = getValue(comments[0])
+                team2Loadout = getValue(comments[1])
+
+                winBox = stat.findAll('div', class_ = 'rnd-sq')
+                if('mod-win' in str(winBox[0])):
+                    team1Win = True
+                else:
+                    team1Win = False
+
+                mapEconStats[j] = {
+                    "Team1Bank" : team1Bank,
+                    "Team2Bank" : team2Bank,
+                    "Team1Loadout" : team1Loadout,
+                    "Team2Loadout" : team2Loadout,
+                    "Team1Win" : team1Win
+                }
+                j += 1
+            else:
+                continue
+        matchEconStats["Map" + str(i)] = mapEconStats
+        i += 1
+
+    return matchEconStats
+
+def isComment(input):
+    return isinstance(input, Comment)
+
+def getValue(input):
+    match = re.search(r'(\d+\.\d+)', input)
+    if match:
+        return str(match.group(1))
+    else:
+        return None
