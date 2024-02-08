@@ -4,6 +4,7 @@ from vlr import*
 from news import*   
 from matches import*
 from matchProcessor import*
+from playerProcessor import*
 
 app = FastAPI()
 
@@ -39,11 +40,24 @@ async def getArticlePage(articleNum):
 async def getMatch(match_id):
     return getMatchPage(match_id)
 
+#playerProcessor.py-----------------------------------
+
+#getPlayerPage
+@app.get("/getPlayerPage/{playerID}")
+async def getPlayer(playerID):
+    return getPlayerPage(playerID)
+
+#getPlayerAgentStats
+@app.get("/getPlayerAgentStats/{playerID}/{timespan}")
+async def getAgentStats(playerID, timespan):
+    return getPlayerAgentStats(playerID, timespan)
+
+#getPlayerMatchResults
+@app.get("/getPlayerMatchResults/{playerID}/{page}")
+async def getPlayerResults(playerID, page):
+    return getPlayerMatchResults(playerID, page)
+
 #Others-----------------------------------------------
-#getPlayerStats
-@app.get("/player/{player_id}")
-async def getPlayer(player_id):
-    return getPlayerStats(player_id)
 
 #updateMatchDatabase
 @app.get("/updateMatch")
