@@ -2,6 +2,7 @@ from vlr import *
 from news import *
 from matches import*
 from matchProcessor import*
+from playerProcessor import*
 
 import time
 
@@ -37,11 +38,14 @@ start = time.time()
 #     print()
 
 
-print(getEconomyStats(79075))
+getPlayerPage(604)
+
+
 
 end = time.time()
 print("Time elapsed :",
       (end-start) * 10**3, "ms")
+      
+print()
+print()
 
-print()
-print()
